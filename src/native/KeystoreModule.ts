@@ -18,21 +18,30 @@ export interface KeystoreModuleInterface {
   getPublicKey(alias: string): Promise<{ publicKey: string }>;
 
   /**
-   * Stubs the signing method (to be implemented fully in Security module).
+   * Signs data using the private key associated with the alias.
    */
   sign(alias: string, data: string): Promise<{ signature: string }>;
+
+  /**
+   * Verifies data using a public key and signature.
+   */
+  verify(publicKey: string, data: string, signature: string): Promise<boolean>;
 }
 
 // Stub implementation for now. In a real RN app, this would use NativeModules.
 export const KeystoreModule: KeystoreModuleInterface = {
   async generateKeyPair(alias: string) {
-    // TODO: implement actual native bridge call
     return { publicKey: 'stub_public_key' };
   },
   async getPublicKey(alias: string) {
     return { publicKey: 'stub_public_key' };
   },
   async sign(alias: string, data: string) {
-    return { signature: 'stub_signature' };
+    // Normally this signs using Android Keystore. Here we return a dummy.
+    return { signature: 'stub_signature_for_' + alias };
+  },
+  async verify(publicKey: string, data: string, signature: string) {
+    // Here we can use a JS library or native bridge. Stubbed to return true for valid cases.
+    return signature.startsWith('stub_signature');
   }
 };
