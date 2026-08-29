@@ -1,0 +1,21 @@
+# Node defaults
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# IDEs and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Excluded folders
+Docs/
