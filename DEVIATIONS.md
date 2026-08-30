@@ -11,3 +11,7 @@
 
 ## Module 06: BLE Transport
 - BLE UUIDs (Service, Write, Notify) were not defined in the frozen core EMP specifications provided previously, so the placeholder UUIDs from the Module 06 prompt were retained as the official v1 UUIDs.
+
+## Module 07: Peer Discovery
+- Extended TransportManager (Module 05) with sendToAddress, onRawPeerDiscovered, onRawMessageReceived, and implemented registerPeerIdentity to support pre-identity handshake logic.
+- Finalized SessionState enum in discovery/types.ts which was previously a placeholder in Module 02.

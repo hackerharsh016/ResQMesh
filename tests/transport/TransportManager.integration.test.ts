@@ -18,8 +18,8 @@ describe('TransportManager Integration (Mock Ether)', () => {
     managerA = new TransportManager(mockRepoA);
     managerB = new TransportManager(mockRepoB);
 
-    transportA = new MockTransport(TransportType.BLE, 1024);
-    transportB = new MockTransport(TransportType.BLE, 1024);
+    transportA = new MockTransport(TransportType.BLE, 1024, 'addressA');
+    transportB = new MockTransport(TransportType.BLE, 1024, 'addressB');
 
     // Wire them together in a mock ether
     transportA.etherPeers.set('addressB', transportB);

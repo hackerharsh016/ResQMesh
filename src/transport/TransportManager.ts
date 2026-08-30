@@ -10,10 +10,13 @@ export interface TransportManagerInterface {
   startAll(): Promise<void>;
   stopAll(): Promise<void>;
   send(nodeId: string, message: ProtocolMessage): Promise<void>;
+  sendToAddress(peerAddress: string, transport: TransportType, message: ProtocolMessage): Promise<void>;
   getAvailableTransports(nodeId: string): TransportType[];
   onPeerDiscovered(handler: (nodeId: string, transports: TransportType[]) => void): Unsubscribe;
   onPeerLost(handler: (nodeId: string) => void): Unsubscribe;
   onMessageReceived(handler: (nodeId: string, message: ProtocolMessage) => void): Unsubscribe;
+  onRawPeerDiscovered(handler: (peerAddress: string, transport: TransportType, signalStrength?: number) => void): Unsubscribe;
+  onRawMessageReceived(handler: (peerAddress: string, transport: TransportType, payload: Uint8Array) => void): Unsubscribe;
   registerPeerIdentity(peerAddress: string, nodeId: string, transport: TransportType): void;
 }
 
@@ -27,12 +30,15 @@ export class TransportManager implements TransportManagerInterface {
   // Maps nodeIds to the set of transport types they are currently available on
   private availableTransports: Map<string, Set<TransportType>> = new Map();
 
-  // Maps nodeIds to sets of peerAddresses (we could have multiple addresses for a single node across transports)
+  // Maps nodeIds to sets of peerAddresses
   private nodeToAddresses: Map<string, Map<TransportType, string>> = new Map();
 
   private peerDiscoveredHandlers: Set<(nodeId: string, transports: TransportType[]) => void> = new Set();
   private peerLostHandlers: Set<(nodeId: string) => void> = new Set();
   private messageReceivedHandlers: Set<(nodeId: string, message: ProtocolMessage) => void> = new Set();
+
+  private rawPeerDiscoveredHandlers: Set<(peerAddress: string, transport: TransportType, signalStrength?: number) => void> = new Set();
+  private rawMessageReceivedHandlers: Set<(peerAddress: string, transport: TransportType, payload: Uint8Array) => void> = new Set();
 
   constructor(private peerTransportRepo: PeerTransportRepository) {}
 
@@ -40,13 +46,15 @@ export class TransportManager implements TransportManagerInterface {
     this.transports.set(transport.type, transport);
 
     transport.onPeerDiscovered(async (peer) => {
-      let nodeId = peer.nodeId || this.addressToNodeId.get(peer.peerAddress);
+      const nodeId = peer.nodeId || this.addressToNodeId.get(peer.peerAddress);
       if (nodeId) {
         // We know who this is, dedup and aggregate
         this.handlePeerAvailable(nodeId, peer.peerAddress, peer.transport, peer.signalStrength);
       } else {
-        // Unknown identity yet. Wait for HELLO message to associate.
-        // We don't bubble it up as onPeerDiscovered(nodeId) until we have the nodeId.
+        // Unknown identity yet. Fire raw event for PeerDiscoveryService.
+        for (const h of this.rawPeerDiscoveredHandlers) {
+          h(peer.peerAddress, peer.transport, peer.signalStrength);
+        }
       }
     });
 
@@ -65,27 +73,20 @@ export class TransportManager implements TransportManagerInterface {
     });
 
     transport.onMessageReceived((peerAddress, payload) => {
-      try {
-        const message = this.wireCodec.decode(payload);
-        const nodeId = this.addressToNodeId.get(peerAddress);
-        if (nodeId) {
+      const nodeId = this.addressToNodeId.get(peerAddress);
+      if (nodeId) {
+        // Known peer
+        try {
+          const message = this.wireCodec.decode(payload);
           for (const h of this.messageReceivedHandlers) h(nodeId, message);
-        } else {
-          // If we receive a HELLO, this is where registerPeerIdentity should be called by the session layer.
-          // But if we don't know the nodeId yet, we might emit it with an empty nodeId? No, the interface says `nodeId: string`.
-          // The spec: "before a HelloMessage is exchanged and its nodeId learned, TransportManager only knows a transport-local peerAddress... populated by whatever module handles the HELLO exchange".
-          // For now, if we don't know the nodeId, we can't route the message using the standard signature `onMessageReceived(nodeId, message)`.
-          // Wait, how does the session layer receive the HELLO if we drop it?
-          // Ah, we might need a way to pass unknown-identity messages or just assume the Session layer uses `peerAddress`?
-          // Actually, `message.senderNodeId` is inside the envelope! We can use that.
-          if (message.senderNodeId) {
-            this.registerPeerIdentity(peerAddress, message.senderNodeId, transport.type);
-            for (const h of this.messageReceivedHandlers) h(message.senderNodeId, message);
-          }
+        } catch (e) {
+          console.error(`Failed to decode incoming message from known peer ${peerAddress}`, e);
         }
-      } catch (e) {
-        console.error(`Failed to decode incoming message from ${peerAddress}`, e);
-        // Catch DecodeError locally, do not crash transport event loop
+      } else {
+        // Unknown peer, route to raw channel for handshake
+        for (const h of this.rawMessageReceivedHandlers) {
+          h(peerAddress, transport.type, payload);
+        }
       }
     });
   }
@@ -143,7 +144,7 @@ export class TransportManager implements TransportManagerInterface {
         h(nodeId, Array.from(transports));
       }
       
-      // Persist in DB (don't await to block event loop)
+      // Persist in DB
       this.peerTransportRepo.upsert(nodeId, transportType, signalStrength).catch(e => console.error(e));
     }
   }
@@ -161,7 +162,6 @@ export class TransportManager implements TransportManagerInterface {
 
     const payload = this.wireCodec.encode(message);
 
-    // Pick the transport with the largest max message size among available
     let bestTransport: MeshTransport | null = null;
     for (const type of available) {
       const t = this.transports.get(type);
@@ -186,11 +186,29 @@ export class TransportManager implements TransportManagerInterface {
     }
 
     try {
-      // connect() transparently handles already connected states internally in MeshTransport implementation
       await bestTransport.connect(peerAddress);
       await bestTransport.send(peerAddress, payload);
     } catch (e) {
       throw new TransportSendError(`Failed to send over ${bestTransport.type}: ${e}`);
+    }
+  }
+
+  async sendToAddress(peerAddress: string, transport: TransportType, message: ProtocolMessage): Promise<void> {
+    const t = this.transports.get(transport);
+    if (!t) {
+      throw new NoTransportAvailableError(`Transport ${transport} not registered`);
+    }
+
+    const payload = this.wireCodec.encode(message);
+    if (payload.length > t.getMaxMessageSize()) {
+      throw new PayloadTooLargeError(`Payload size ${payload.length} exceeds transport max ${t.getMaxMessageSize()}`);
+    }
+
+    try {
+      await t.connect(peerAddress);
+      await t.send(peerAddress, payload);
+    } catch (e) {
+      throw new TransportSendError(`Failed to sendToAddress over ${transport}: ${e}`);
     }
   }
 
@@ -211,5 +229,15 @@ export class TransportManager implements TransportManagerInterface {
   onMessageReceived(handler: (nodeId: string, message: ProtocolMessage) => void): Unsubscribe {
     this.messageReceivedHandlers.add(handler);
     return () => this.messageReceivedHandlers.delete(handler);
+  }
+
+  onRawPeerDiscovered(handler: (peerAddress: string, transport: TransportType, signalStrength?: number) => void): Unsubscribe {
+    this.rawPeerDiscoveredHandlers.add(handler);
+    return () => this.rawPeerDiscoveredHandlers.delete(handler);
+  }
+
+  onRawMessageReceived(handler: (peerAddress: string, transport: TransportType, payload: Uint8Array) => void): Unsubscribe {
+    this.rawMessageReceivedHandlers.add(handler);
+    return () => this.rawMessageReceivedHandlers.delete(handler);
   }
 }
