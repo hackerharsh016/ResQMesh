@@ -24,6 +24,7 @@ export interface DtnEngineInterface {
   markDelivered(bundleId: string): Promise<void>;
   markRejectedByPeer(bundleId: string, peerNodeId: string, reason?: string): Promise<void>;
   runMaintenanceCycle(): Promise<MaintenanceReport>;
+  hasBundle(bundleId: string): Promise<boolean>;
 }
 
 export class DtnEngine implements DtnEngineInterface {
@@ -44,6 +45,11 @@ export class DtnEngine implements DtnEngineInterface {
     
     bundle.state = BundleState.QUEUED;
     return bundle;
+  }
+
+  async hasBundle(bundleId: string): Promise<boolean> {
+    const existing = await this.bundleRepo.getById(bundleId);
+    return existing !== null;
   }
 
   async receiveBundle(bundle: EmergencyBundle, senderPublicKey: string): Promise<AcceptanceResult> {
@@ -197,11 +203,6 @@ export class DtnEngine implements DtnEngineInterface {
 
   async markRelayed(bundleId: string): Promise<void> {
     try {
-      const bundle = await this.bundleRepo.getById(bundleId);
-      if (bundle) {
-        applyHopIncrement(bundle);
-      }
-      await this.bundleRepo.incrementHop(bundleId);
       await this.bundleRepo.markState(bundleId, BundleState.RELAYED);
     } catch (e) {
       console.warn(`Could not mark relayed for ${bundleId}`, e);

@@ -168,4 +168,30 @@ describe('PeerDiscoveryService', () => {
     expect(sessionRepo.updateState).toHaveBeenCalledWith(expect.any(String), SessionState.CLOSED);
     expect(onClosed).toHaveBeenCalled();
   });
+  it('should send SESSION_CLOSE on closeSession', async () => {
+    await service.start();
+
+    // Setup active session
+    await rawDiscoverHandler('peer-1', TransportType.BLE, -50);
+    const ackMsg = {
+      version: PROTOCOL_VERSION,
+      type: MessageType.HELLO_ACK,
+      senderNodeId: 'remote-node',
+      timestamp: Date.now(),
+      payload: { accepted: true }
+    };
+    const payload = wireCodec.encode(ackMsg as any);
+    await rawMessageHandler('peer-1', TransportType.BLE, payload);
+
+    tmMock.send = jest.fn().mockResolvedValue(undefined);
+
+    await service.closeSession('remote-node', 'SYNC_COMPLETE');
+
+    expect(tmMock.send).toHaveBeenCalledWith('remote-node', expect.objectContaining({
+      type: MessageType.SESSION_CLOSE,
+      payload: { reason: 'SYNC_COMPLETE' }
+    }));
+
+    expect(sessionRepo.updateState).toHaveBeenCalledWith(expect.any(String), SessionState.CLOSED);
+  });
 });

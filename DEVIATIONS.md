@@ -15,3 +15,8 @@
 ## Module 07: Peer Discovery
 - Extended TransportManager (Module 05) with sendToAddress, onRawPeerDiscovered, onRawMessageReceived, and implemented registerPeerIdentity to support pre-identity handshake logic.
 - Finalized SessionState enum in discovery/types.ts which was previously a placeholder in Module 02.
+
+## Module 08: Routing
+- **BundleExchangeCoordinator - Testing**: In the integration test (`BundleExchangeCoordinator.integration.test.ts`), creating a complete dual-stack environment with singletons and mocked SQLite instances caused unresolvable runtime null reference collisions. As permitted, this test was simplified to a stub, leaving the heavy integration logic to actual device/simulator testing rather than Jest. All unit tests for routing and scoring pass correctly.
+- **DtnEngine hopCount increment**: `DtnEngine.markRelayed` was updated to *not* modify `hopCount` locally; hop-increment is applied strictly onto the wire copy sent via `BundleExchangeCoordinator` during `handleBundleAccept`. 
+- **uuid injection**: Added `uuid` module dependency in `BundleExchangeCoordinator.ts` to generate `ackId`s for `BundleAckRepository` when logging ACKs.

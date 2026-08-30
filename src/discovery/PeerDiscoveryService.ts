@@ -19,6 +19,7 @@ export interface PeerDiscoveryServiceInterface {
   onSessionEstablished(handler: (session: ProtocolSession) => void): Unsubscribe;
   onSessionClosed(handler: (session: ProtocolSession) => void): Unsubscribe;
   getActiveSessions(): Promise<ProtocolSession[]>;
+  closeSession(nodeId: string, reason?: string): Promise<void>;
 }
 
 export class PeerDiscoveryService implements PeerDiscoveryServiceInterface {
@@ -197,5 +198,26 @@ export class PeerDiscoveryService implements PeerDiscoveryServiceInterface {
   onSessionClosed(handler: (session: ProtocolSession) => void): Unsubscribe {
     this.closedHandlers.add(handler);
     return () => this.closedHandlers.delete(handler);
+  }
+  async closeSession(nodeId: string, reason?: string): Promise<void> {
+    const session = this.activeSessionsByNode.get(nodeId);
+    if (session) {
+      try {
+        // Try to send SESSION_CLOSE message gracefully
+        const identity = this.identityManager.getIdentity();
+        const closeMsg: ProtocolEnvelope<any> = {
+          version: PROTOCOL_VERSION,
+          type: MessageType.SESSION_CLOSE,
+          senderNodeId: identity.nodeId,
+          timestamp: Date.now(),
+          payload: { reason }
+        };
+        await this.transportManager.send(nodeId, closeMsg);
+      } catch (e) {
+        // Ignore if transport already failed
+      }
+
+      await this.handlePeerLost(nodeId);
+    }
   }
 }
