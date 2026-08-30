@@ -28,6 +28,8 @@ export interface DtnEngineInterface {
 }
 
 export class DtnEngine implements DtnEngineInterface {
+  private gatewayService?: any;
+
   constructor(
     private bundleRepo: BundleRepository,
     private securityEventRepo: SecurityEventRepository,
@@ -35,6 +37,10 @@ export class DtnEngine implements DtnEngineInterface {
     private configRepo: LocalConfigRepository,
     private identityManager: IdentityManager
   ) {}
+
+  setGatewayService(svc: any) {
+    this.gatewayService = svc;
+  }
 
   async createLocalBundle(input: CreateBundleInput): Promise<EmergencyBundle> {
     const identity = this.identityManager.getIdentity();
@@ -44,6 +50,11 @@ export class DtnEngine implements DtnEngineInterface {
     await this.bundleRepo.markState(bundle.bundleId, BundleState.QUEUED);
     
     bundle.state = BundleState.QUEUED;
+
+    if (this.gatewayService && bundle.routing.destinationType === DestinationType.AUTHORITY) {
+      this.gatewayService.enqueueForSync(bundle.bundleId).catch((e: any) => console.error(e));
+    }
+
     return bundle;
   }
 
@@ -117,6 +128,10 @@ export class DtnEngine implements DtnEngineInterface {
         await this.bundleRepo.create(bundle);
         await this.bundleRepo.markState(bundle.bundleId, BundleState.QUEUED);
         bundle.state = BundleState.QUEUED;
+        
+        if (this.gatewayService && bundle.routing.destinationType === DestinationType.AUTHORITY) {
+          this.gatewayService.enqueueForSync(bundle.bundleId).catch((e: any) => console.error(e));
+        }
       } catch (e) {
         if (e instanceof DuplicateBundleError) {
           result.accepted = false;

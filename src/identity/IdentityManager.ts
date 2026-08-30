@@ -113,10 +113,16 @@ export class IdentityManager {
     return this.identity;
   }
 
+  private _liveGatewayCapable: boolean = false;
+
+  public setGatewayCapable(capable: boolean) {
+    this._liveGatewayCapable = capable;
+  }
+
   public getCapabilities(): NodeCapabilities {
     return {
       transports: [], // Stub for now
-      gateway: false,
+      gateway: this._liveGatewayCapable,
       maxBundleSize: 8192, // Stub for now, can be read from config
       batteryClass: BatteryClass.NORMAL
     };

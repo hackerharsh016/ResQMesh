@@ -4,4 +4,6 @@ export interface SyncQueueRepository {
   enqueue(item: GatewaySyncItem): Promise<void>;
   getWaiting(limit?: number): Promise<GatewaySyncItem[]>;
   updateStatus(bundleId: string, status: SyncStatus, patch?: Partial<GatewaySyncItem>): Promise<void>;
+  remove(bundleId: string): Promise<void>;
+  getByStatus(status: SyncStatus): Promise<GatewaySyncItem[]>;
 }
