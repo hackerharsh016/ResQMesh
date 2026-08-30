@@ -30,5 +30,13 @@
     "jest": "^30.5.0",
     "ts-jest": "^29.4.12",
     "typescript": "^5.9.3"
+  },
+  "codegenConfig": {
+    "name": "ResQMeshAppSpecs",
+    "type": "modules",
+    "jsSrcsDir": "src/native/specs",
+    "android": {
+      "javaPackageName": "com.resqmesh.nativemodules"
+    }
   }
 }

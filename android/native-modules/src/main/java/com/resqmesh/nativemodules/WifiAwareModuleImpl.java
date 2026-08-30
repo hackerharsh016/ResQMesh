@@ -1,33 +1,28 @@
-package com.resqmesh.networking;
+package com.resqmesh.nativemodules;
 
 import android.content.Context;
 import android.net.wifi.aware.WifiAwareManager;
 import android.os.Build;
-
-import androidx.annotation.NonNull;
-
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 
-public class WifiAwareModule extends ReactContextBaseJavaModule {
+public class WifiAwareModuleImpl extends NativeWifiAwareModuleSpec {
+    public static final String NAME = "WifiAwareNativeModule";
     private WifiAwareManager manager;
 
-    public WifiAwareModule(ReactApplicationContext reactContext) {
+    public WifiAwareModuleImpl(ReactApplicationContext reactContext) {
         super(reactContext);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager = (WifiAwareManager) reactContext.getSystemService(Context.WIFI_AWARE_SERVICE);
         }
     }
 
-    @NonNull
     @Override
     public String getName() {
-        return "WifiAwareNativeModule";
+        return NAME;
     }
 
-    @ReactMethod
+    @Override
     public void isSupported(Promise promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager != null) {
             promise.resolve(manager.isAvailable());
@@ -36,37 +31,37 @@ public class WifiAwareModule extends ReactContextBaseJavaModule {
         }
     }
 
-    @ReactMethod
+    @Override
     public void requestPermissions(Promise promise) {
         promise.resolve(true);
     }
 
-    @ReactMethod
+    @Override
     public void publish(String serviceName, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void subscribe(String serviceName, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void stopPublishSubscribe(Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void openDataPath(String peerHandleId, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void closeDataPath(String peerHandleId, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void sendBytes(String peerHandleId, String base64Data, Promise promise) {
         promise.resolve(null);
     }

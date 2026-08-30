@@ -1,74 +1,67 @@
-package com.resqmesh.networking;
+package com.resqmesh.nativemodules;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
-
-import androidx.annotation.NonNull;
-
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
 
-public class BleModule extends ReactContextBaseJavaModule {
+public class BleModuleImpl extends NativeBleModuleSpec {
+    public static final String NAME = "BleNativeModule";
     private final BluetoothAdapter bluetoothAdapter;
 
-    public BleModule(ReactApplicationContext reactContext) {
+    public BleModuleImpl(ReactApplicationContext reactContext) {
         super(reactContext);
         BluetoothManager bluetoothManager = (BluetoothManager) reactContext.getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothAdapter = bluetoothManager.getAdapter();
+        bluetoothAdapter = bluetoothManager != null ? bluetoothManager.getAdapter() : null;
     }
 
-    @NonNull
     @Override
     public String getName() {
-        return "BleNativeModule";
+        return NAME;
     }
 
-    @ReactMethod
+    @Override
     public void isSupported(Promise promise) {
         promise.resolve(bluetoothAdapter != null);
     }
 
-    @ReactMethod
+    @Override
     public void requestPermissions(Promise promise) {
-        // Implementation for requesting runtime permissions
         promise.resolve(true);
     }
 
-    @ReactMethod
+    @Override
     public void startAdvertising(Promise promise) {
-        // Start BLE advertising implementation
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void stopAdvertising(Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void startScanning(Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void stopScanning(Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void connect(String deviceAddress, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void disconnect(String deviceAddress, Promise promise) {
         promise.resolve(null);
     }
 
-    @ReactMethod
+    @Override
     public void sendChunk(String deviceAddress, String base64Data, Promise promise) {
         promise.resolve(null);
     }

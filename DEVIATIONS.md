@@ -6,7 +6,7 @@
 - **Local Notifications & Foreground**: Selected `@notifee/react-native` which is actively maintained and supports New Architecture, solving both notification UI and foreground background processing robustly.
 - **Connectivity Detection**: Selected `@react-native-community/netinfo` since it exposes Native Modules cleanly to React Native New Architecture.
 - **Navigation**: Selected `react-navigation` stack for robust and widely supported screen transition.
-- **Android Networking Setup**: Android native code generation (BLE, Wifi Direct, Wifi Aware) placed directly in `android/app/src/main/java/com/resqmesh/networking/` as React Context Base Java Modules, correctly registered via `ResQMeshPackage`.
+- **Android Networking Setup**: Fully implemented the **Turbo Native Module (New Architecture)** scaffolding convention. Strict TypeScript specs are located in `frontend/src/native/specs/` (`NativeBleModule.ts`, `NativeWifiDirectModule.ts`, `NativeWifiAwareModule.ts`). The `package.json` includes the `codegenConfig`, and the Java implementations (`BleModuleImpl.java`, etc.) extend the generated Spec classes and use `TurboReactPackage` within the `android/native-modules/src/main/java/com/resqmesh/nativemodules/` boundary exactly as mandated.
 
 ## Module 03: Protocol Primitives
 - Created a pseudo-crypto stub for `integrityHash` using `String.charCodeAt` since `react-native-quick-crypto` is not present in standard Node.js without polyfills. A comment indicates where to insert `createHash('sha256')` in the real app.
