@@ -1,5 +1,13 @@
 # Module Deviations Log
 
+## Module 00: Project Bootstrap
+- **Folder Structure Redesign**: Converted the standard `src/` boilerplate into a modular top-level root format (`frontend/`, `backend/`, `android/`) to isolate mobile specific code and ease API scaling.
+- **SQLite Library**: Selected `react-native-quick-sqlite` due to its active JSI and New Architecture support.
+- **Local Notifications & Foreground**: Selected `@notifee/react-native` which is actively maintained and supports New Architecture, solving both notification UI and foreground background processing robustly.
+- **Connectivity Detection**: Selected `@react-native-community/netinfo` since it exposes Native Modules cleanly to React Native New Architecture.
+- **Navigation**: Selected `react-navigation` stack for robust and widely supported screen transition.
+- **Android Networking Setup**: Android native code generation (BLE, Wifi Direct, Wifi Aware) placed directly in `android/app/src/main/java/com/resqmesh/networking/` as React Context Base Java Modules, correctly registered via `ResQMeshPackage`.
+
 ## Module 03: Protocol Primitives
 - Created a pseudo-crypto stub for `integrityHash` using `String.charCodeAt` since `react-native-quick-crypto` is not present in standard Node.js without polyfills. A comment indicates where to insert `createHash('sha256')` in the real app.
 

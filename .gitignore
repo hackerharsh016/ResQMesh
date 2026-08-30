@@ -19,3 +19,13 @@ Thumbs.db
 
 # Excluded folders
 Docs/
+
+# Android specifics
+*.keystore
+!debug.keystore
+*.jks
+local.properties
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/

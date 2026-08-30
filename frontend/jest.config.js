@@ -6,6 +6,9 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 module.exports = {
   testEnvironment: "node",
   transform: {
-    ...tsJestTransformCfg,
+    '^.+\\.tsx?$': ['ts-jest', {}],
   },
+  fakeTimers: {
+    enableGlobally: true
+  }
 };
