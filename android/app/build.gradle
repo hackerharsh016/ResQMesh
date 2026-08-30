@@ -1,14 +1,21 @@
 apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
 
+react {
+    root = file("../../frontend")
+    reactNativeDir = file("../../frontend/node_modules/react-native")
+    codegenDir = file("../../frontend/node_modules/@react-native/codegen")
+    cliFile = file("../../frontend/node_modules/react-native/cli.js")
+}
+
 android {
     namespace "com.resqmesh"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "com.resqmesh"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
