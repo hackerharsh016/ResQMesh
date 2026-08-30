@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'ResQMesh'
+
+includeBuild('../frontend/node_modules/@react-native/gradle-plugin')
+
+include ':app'

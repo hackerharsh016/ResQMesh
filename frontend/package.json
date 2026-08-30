@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/hackerharsh016/ResQMesh#readme",
   "dependencies": {
+    "react": "^19.2.8",
+    "react-native": "^0.87.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
