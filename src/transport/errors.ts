@@ -32,3 +32,10 @@ export class TransportSendError extends Error {
     this.name = 'TransportSendError';
   }
 }
+
+export class TransportBusyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TransportBusyError';
+  }
+}

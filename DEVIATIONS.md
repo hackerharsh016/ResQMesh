@@ -26,3 +26,7 @@
 - **SyncQueueRepository interface extension**: Added `remove` and `getByStatus` methods to the `SyncQueueRepository` interface to support startup reconciliation and orphaned queue entry removal.
 - **DtnEngine Gateway Integration**: Modified `DtnEngine.createLocalBundle` and `DtnEngine.receiveBundle` to call `GatewayService.enqueueForSync()` when a bundle has `DestinationType.AUTHORITY`. Because `GatewayService` requires `DtnEngine`, injected `GatewayService` into `DtnEngine` via a setter to avoid circular constructor dependencies.
 - **Live gateway flag**: Plumbed `GatewayService`'s live gateway checks into `IdentityManager.setGatewayCapable()` so `PeerDiscoveryService`'s `HelloMessage` automatically reflects real-time connectivity states without direct dependency on `GatewayService`.
+
+## Module 10: Advanced Transports
+- **Service Name Resolution**: No frozen EMP specification provided a specific Wi-Fi Aware service name, so the provisional `emp-mesh-v1` was retained in `constants.ts`.
+- **Manual Device-Level Testing**: Blocked due to execution in a pure Node.js simulated environment. Physical hardware fleet validations (two devices linking via P2P and Aware socket servers) are deferred to the native instrumentation phase.
