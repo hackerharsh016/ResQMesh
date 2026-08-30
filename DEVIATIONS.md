@@ -30,3 +30,8 @@
 ## Module 10: Advanced Transports
 - **Service Name Resolution**: No frozen EMP specification provided a specific Wi-Fi Aware service name, so the provisional `emp-mesh-v1` was retained in `constants.ts`.
 - **Manual Device-Level Testing**: Blocked due to execution in a pure Node.js simulated environment. Physical hardware fleet validations (two devices linking via P2P and Aware socket servers) are deferred to the native instrumentation phase.
+
+## Module 11: UI & Advanced Features
+- **Pure JS Environment Mocks**: To allow `MeshRuntime.integration.test.ts` to construct the entire app stack seamlessly within the Node test runner, several missing SQLite repository implementations (e.g. `SQLiteProtocolEventRepository`, `SQLiteSyncQueueRepository`) were synthesized as in-memory mocks (`Mocks.ts`). Native SDK wrappers (for Bluetooth and WiFi Direct/Aware) were also implemented as pure object literals.
+- **React Native Ecosystem**: The standard React/React-Native `.tsx` view layer screens (`ReportIncidentScreen`, `FeedScreen`, `MeshStatusScreen`, `SettingsScreen`) were correctly scaffolded with proper hooks into `DtnEngine` and `GatewayService` events, but their compilation is not explicitly verified via Jest to bypass the lack of a React DOM polyfill in the current harness.
+- **DtnEngine Event Hooks**: Added `onBundleAccepted` and `onBundleStateChanged` tracking as per the Module 11 spec, replacing prior polling strategies in the UI feeds.

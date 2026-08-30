@@ -1,4 +1,4 @@
-import { EmergencyBundle, BundleSummary, BundleState } from '../protocol/types/bundle';
+import { EmergencyBundle, BundleSummary, BundleState, DestinationType } from '../protocol/types/bundle';
 import { BundleFactory, CreateBundleInput } from '../protocol/BundleFactory';
 import { SecurityService } from '../protocol/SecurityService';
 import { applyHopIncrement, applyReplicationDecrement } from '../protocol/mutations';
@@ -25,10 +25,24 @@ export interface DtnEngineInterface {
   markRejectedByPeer(bundleId: string, peerNodeId: string, reason?: string): Promise<void>;
   runMaintenanceCycle(): Promise<MaintenanceReport>;
   hasBundle(bundleId: string): Promise<boolean>;
+  onBundleAccepted(handler: (bundle: EmergencyBundle) => void): import('../transport/types').Unsubscribe;
+  onBundleStateChanged(handler: (bundleId: string, newState: BundleState) => void): import('../transport/types').Unsubscribe;
 }
 
 export class DtnEngine implements DtnEngineInterface {
   private gatewayService?: any;
+  private acceptedHandlers = new Set<(bundle: EmergencyBundle) => void>();
+  private stateChangedHandlers = new Set<(bundleId: string, newState: BundleState) => void>();
+
+  onBundleAccepted(handler: (bundle: EmergencyBundle) => void) {
+    this.acceptedHandlers.add(handler);
+    return () => this.acceptedHandlers.delete(handler);
+  }
+
+  onBundleStateChanged(handler: (bundleId: string, newState: BundleState) => void) {
+    this.stateChangedHandlers.add(handler);
+    return () => this.stateChangedHandlers.delete(handler);
+  }
 
   constructor(
     private bundleRepo: BundleRepository,
@@ -50,6 +64,9 @@ export class DtnEngine implements DtnEngineInterface {
     await this.bundleRepo.markState(bundle.bundleId, BundleState.QUEUED);
     
     bundle.state = BundleState.QUEUED;
+
+    for (const h of this.acceptedHandlers) h(bundle);
+    for (const h of this.stateChangedHandlers) h(bundle.bundleId, BundleState.QUEUED);
 
     if (this.gatewayService && bundle.routing.destinationType === DestinationType.AUTHORITY) {
       this.gatewayService.enqueueForSync(bundle.bundleId).catch((e: any) => console.error(e));
@@ -129,6 +146,9 @@ export class DtnEngine implements DtnEngineInterface {
         await this.bundleRepo.markState(bundle.bundleId, BundleState.QUEUED);
         bundle.state = BundleState.QUEUED;
         
+        for (const h of this.acceptedHandlers) h(bundle);
+        for (const h of this.stateChangedHandlers) h(bundle.bundleId, BundleState.QUEUED);
+
         if (this.gatewayService && bundle.routing.destinationType === DestinationType.AUTHORITY) {
           this.gatewayService.enqueueForSync(bundle.bundleId).catch((e: any) => console.error(e));
         }
@@ -199,6 +219,7 @@ export class DtnEngine implements DtnEngineInterface {
 
   async markOffered(bundleId: string, peerNodeId: string): Promise<void> {
     await this.bundleRepo.markState(bundleId, BundleState.OFFERED);
+    for (const h of this.stateChangedHandlers) h(bundleId, BundleState.OFFERED);
   }
 
   async markTransferred(bundleId: string, peerNodeId: string): Promise<void> {
@@ -211,6 +232,7 @@ export class DtnEngine implements DtnEngineInterface {
       }
       await this.bundleRepo.decrementReplicationBudget(bundleId);
       await this.bundleRepo.markState(bundleId, BundleState.TRANSFERRED);
+      for (const h of this.stateChangedHandlers) h(bundleId, BundleState.TRANSFERRED);
     } catch (e) {
       console.warn(`Could not mark transferred for ${bundleId}`, e);
     }
@@ -219,6 +241,7 @@ export class DtnEngine implements DtnEngineInterface {
   async markRelayed(bundleId: string): Promise<void> {
     try {
       await this.bundleRepo.markState(bundleId, BundleState.RELAYED);
+      for (const h of this.stateChangedHandlers) h(bundleId, BundleState.RELAYED);
     } catch (e) {
       console.warn(`Could not mark relayed for ${bundleId}`, e);
     }
@@ -226,6 +249,7 @@ export class DtnEngine implements DtnEngineInterface {
 
   async markDelivered(bundleId: string): Promise<void> {
     await this.bundleRepo.markState(bundleId, BundleState.DELIVERED);
+    for (const h of this.stateChangedHandlers) h(bundleId, BundleState.DELIVERED);
   }
 
   async markRejectedByPeer(bundleId: string, peerNodeId: string, reason?: string): Promise<void> {
