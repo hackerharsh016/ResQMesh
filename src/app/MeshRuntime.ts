@@ -49,24 +49,32 @@ export interface MeshRuntimeInterface {
   getPeerDiscoveryService(): PeerDiscoveryService;
 }
 
+import { BleAdapter, WifiDirectAdapter, WifiAwareAdapter } from '../native/NativeAdapters';
+
 export class MeshRuntime implements MeshRuntimeInterface {
   private running = false;
-
   private dtnEngine!: DtnEngine;
   private transportManager!: TransportManager;
   private peerDiscoveryService!: PeerDiscoveryService;
   private exchangeCoordinator!: BundleExchangeCoordinator;
   private gatewayService!: GatewayService;
   private maintenanceScheduler!: MaintenanceScheduler;
+  private configRepo!: SQLiteLocalConfigRepository;
 
   constructor(private permissionFlow: PermissionFlow = new NativePermissionFlow()) {}
+
+  getDtnEngine(): DtnEngine { return this.dtnEngine; }
+  getGatewayService(): GatewayService { return this.gatewayService; }
+  getPeerDiscoveryService(): PeerDiscoveryService { return this.peerDiscoveryService; }
+  getConfigRepo() { return this.configRepo; }
+  getPermissionFlow() { return this.permissionFlow; }
 
   async startMesh(): Promise<void> {
     if (this.running) return;
 
     const identityRepo = new SQLiteIdentityRepository();
-    const configRepo = new SQLiteLocalConfigRepository();
-    const identityManager = IdentityManager.getInstance(identityRepo, configRepo);
+    this.configRepo = new SQLiteLocalConfigRepository();
+    const identityManager = IdentityManager.getInstance(identityRepo, this.configRepo);
     await identityManager.initialize(); // MUST be first
 
     const bundleRepo = new SQLiteBundleRepository();
@@ -85,41 +93,15 @@ export class MeshRuntime implements MeshRuntimeInterface {
       bundleRepo,
       securityEventRepo,
       protocolEventRepo,
-      configRepo,
+      this.configRepo,
       identityManager
     );
 
     this.transportManager = new TransportManager(peerTransportRepo);
 
-    // Register Transports (using mocks for pure JS environment as allowed in spec)
-    const nativeMock = {
-      isSupported: async () => true,
-      requestPermissions: async () => true,
-      startAdvertising: async () => {},
-      stopAdvertising: async () => {},
-      startScanning: async () => {},
-      stopScanning: async () => {},
-      connect: async () => {},
-      disconnect: async () => {},
-      sendChunk: async () => {},
-      onDeviceDiscovered: () => () => {},
-      onPeerDiscovered: () => () => {},
-      onGroupFormed: () => () => {},
-      onConnectionStateChanged: () => () => {},
-      onChunkReceived: () => () => {},
-      onDataReceived: () => () => {},
-      publish: async () => {},
-      subscribe: async () => {},
-      stopPublishSubscribe: async () => {},
-      openDataPath: async () => {},
-      closeDataPath: async () => {},
-      sendBytes: async () => {},
-      onDataPathEstablished: () => () => {}
-    } as any;
-
-    const bleTransport = new BleTransport(nativeMock, configRepo);
-    const wifiDirectTransport = new WifiDirectTransport(nativeMock, configRepo);
-    const wifiAwareTransport = new WifiAwareTransport(nativeMock, configRepo);
+    const bleTransport = new BleTransport(new BleAdapter(), this.configRepo);
+    const wifiDirectTransport = new WifiDirectTransport(new WifiDirectAdapter(), this.configRepo);
+    const wifiAwareTransport = new WifiAwareTransport(new WifiAwareAdapter(), this.configRepo);
 
     this.transportManager.registerTransport(bleTransport);
     this.transportManager.registerTransport(wifiDirectTransport);
@@ -139,7 +121,7 @@ export class MeshRuntime implements MeshRuntimeInterface {
       this.transportManager,
       this.dtnEngine,
       peerRepo,
-      configRepo,
+      this.configRepo,
       bundleAckRepo,
       bundleRepo,
       identityManager,
@@ -148,7 +130,7 @@ export class MeshRuntime implements MeshRuntimeInterface {
 
     this.gatewayService = new GatewayService(
       new NativeConnectivityMonitor(),
-      configRepo,
+      this.configRepo,
       syncQueueRepo,
       bundleRepo,
       new SupabaseBackendClient('https://mock.supabase.co', 'mock-key'),
@@ -170,7 +152,7 @@ export class MeshRuntime implements MeshRuntimeInterface {
     await this.exchangeCoordinator.start();
     await this.gatewayService.start();
 
-    this.maintenanceScheduler = new IntervalMaintenanceScheduler(this.dtnEngine, this.gatewayService, configRepo);
+    this.maintenanceScheduler = new IntervalMaintenanceScheduler(this.dtnEngine, this.gatewayService, this.configRepo);
     this.maintenanceScheduler.start();
 
     const notifier = new BundleNotifier(this.dtnEngine, identityManager);
@@ -199,15 +181,15 @@ export class MeshRuntime implements MeshRuntimeInterface {
     return this.running;
   }
 
-  getDtnEngine(): DtnEngine {
+  getDtnEngine_old(): DtnEngine {
     return this.dtnEngine;
   }
 
-  getGatewayService(): GatewayService {
+  getGatewayService_old(): GatewayService {
     return this.gatewayService;
   }
 
-  getPeerDiscoveryService(): PeerDiscoveryService {
+  getPeerDiscoveryService_old(): PeerDiscoveryService {
     return this.peerDiscoveryService;
   }
 }
