@@ -11,9 +11,9 @@ import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
-const runtime = new MeshRuntime();
 
 export default function App() {
+  const [runtime] = useState(() => new MeshRuntime());
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
