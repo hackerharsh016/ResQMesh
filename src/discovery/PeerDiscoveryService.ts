@@ -190,6 +190,12 @@ export class PeerDiscoveryService implements PeerDiscoveryServiceInterface {
     return this.sessionRepo.getActiveSessions();
   }
 
+  async triggerScan(): Promise<void> {
+    // Force transports to restart discovery to pick up any new broadcast packets immediately
+    await this.transportManager.stopAll();
+    await this.transportManager.startAll();
+  }
+
   onSessionEstablished(handler: (session: ProtocolSession) => void): Unsubscribe {
     this.establishedHandlers.add(handler);
     return () => this.establishedHandlers.delete(handler);

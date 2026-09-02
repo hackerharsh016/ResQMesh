@@ -21,6 +21,7 @@
     "react-native-get-random-values": "^2.0.0",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.27.0",
+    "react-native-webview": "^14.0.1",
     "uuid": "^14.0.2"
   },
   "devDependencies": {

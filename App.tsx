@@ -9,6 +9,7 @@ import { FeedScreen } from './src/screens/FeedScreen';
 import { MeshStatusScreen } from './src/screens/MeshStatusScreen';
 import { ReportIncidentScreen } from './src/screens/ReportIncidentScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { ErrorBoundary } from './src/ErrorBoundary';
 
 const Tab = createBottomTabNavigator();
 
@@ -41,47 +42,44 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <Tab.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: '#2563EB' },
-            headerTintColor: '#FFFFFF',
-            tabBarActiveTintColor: '#2563EB',
-            tabBarInactiveTintColor: '#6B7280',
-          }}
-        >
-          <Tab.Screen 
-            name="Feed" 
-            options={{ title: 'Feed' }}
-            children={() => <FeedScreen dtnEngine={runtime.getDtnEngine()} />}
-          />
-          <Tab.Screen 
-            name="Report" 
-            options={{ title: 'Report' }}
-            children={() => <ReportIncidentScreen dtnEngine={runtime.getDtnEngine()} onReportCreated={() => {}} />}
-          />
-          <Tab.Screen 
-            name="Status" 
-            options={{ title: 'Network' }}
-            children={() => (
-              <MeshStatusScreen 
-                peerDiscoveryService={runtime.getPeerDiscoveryService()} 
-                gatewayService={runtime.getGatewayService()} 
-              />
-            )}
-          />
-          <Tab.Screen 
-            name="Settings" 
-            options={{ title: 'Settings' }}
-            children={() => (
-              <SettingsScreen 
-                configRepo={runtime.getConfigRepo()} 
-                permissionFlow={runtime.getPermissionFlow()} 
-              />
-            )}
-          />
-        </Tab.Navigator>
-      </NavigationContainer>
+      <ErrorBoundary>
+        <NavigationContainer>
+          <Tab.Navigator
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: { backgroundColor: '#0e1416', borderTopColor: '#3c494b' },
+              tabBarActiveTintColor: '#26c6da',
+              tabBarInactiveTintColor: '#bbc9cc',
+            }}
+          >
+            <Tab.Screen 
+              name="Feed" 
+              options={{ title: 'Feed' }}
+              children={() => <FeedScreen dtnEngine={runtime.getDtnEngine()} />}
+            />
+            <Tab.Screen 
+              name="Report" 
+              options={{ title: 'Report' }}
+              children={() => <ReportIncidentScreen dtnEngine={runtime.getDtnEngine()} onReportCreated={() => {}} />}
+            />
+            <Tab.Screen 
+              name="Status" 
+              options={{ title: 'Network' }}
+              children={() => (
+                <MeshStatusScreen 
+                  peerDiscoveryService={runtime.getPeerDiscoveryService()} 
+                  gatewayService={runtime.getGatewayService()} 
+                />
+              )}
+            />
+            <Tab.Screen 
+              name="Settings" 
+              options={{ title: 'Settings' }}
+              children={() => <SettingsScreen configRepo={runtime.getConfigRepo()} permissionFlow={runtime.getPermissionFlow()} dtnEngine={runtime.getDtnEngine()} />} 
+            />
+          </Tab.Navigator>
+        </NavigationContainer>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }
