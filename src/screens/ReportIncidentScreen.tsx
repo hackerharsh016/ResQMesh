@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, Alert, StyleSheet, TouchableOpacity, ScrollView, Modal, Platform, PermissionsAndroid } from 'react-native';
 import { WebView } from 'react-native-webview';
+import Geolocation from '@react-native-community/geolocation';
 import { DtnEngineInterface } from '../dtn/DtnEngine';
 import { DestinationType, Priority } from '../protocol/types/bundle';
 
@@ -32,6 +33,24 @@ export const ReportIncidentScreen: React.FC<Props> = ({ dtnEngine, onReportCreat
 
   const [pinLat, setPinLat] = useState(baseLat);
   const [pinLon, setPinLon] = useState(baseLon);
+
+  const detectLocation = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION);
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        return;
+      }
+    }
+    Geolocation.getCurrentPosition(
+      (position) => {
+        setPinLat(position.coords.latitude);
+        setPinLon(position.coords.longitude);
+      },
+      (error) => Alert.alert('Location Error', error.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  };
 
   const getLeafletHtml = (isInteractive: boolean) => `
     <!DOCTYPE html>
@@ -158,17 +177,18 @@ export const ReportIncidentScreen: React.FC<Props> = ({ dtnEngine, onReportCreat
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>LOCATION</Text>
           <View style={styles.locationContainer}>
-            <View style={styles.mapPlaceholder}>
+            <View style={styles.mapPlaceholder} pointerEvents="none">
               <WebView 
                 source={{ html: getLeafletHtml(false) }}
-                style={StyleSheet.absoluteFillObject}
+                style={{ flex: 1, width: '100%', height: '100%' }}
                 scrollEnabled={false}
-                pointerEvents="none"
               />
             </View>
             <View style={styles.locationFooter}>
               <View style={styles.locationFooterLeft}>
-                <Text style={styles.locationTargetIcon}>🎯</Text>
+                <TouchableOpacity onPress={detectLocation}>
+                  <Text style={styles.locationTargetIcon}>🎯</Text>
+                </TouchableOpacity>
                 <Text style={styles.locationText}>
                   Lat: {pinLat.toFixed(4)}, Lon: {pinLon.toFixed(4)}
                 </Text>
